@@ -1,0 +1,120 @@
+name: Start tests and deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Запускаем Kafka и Zookeeper через Docker Compose
+      - name: Start Kafka and Zookeeper
+        run: |
+          cat <<EOF > docker-compose-kafka.yml
+          version: '3.8'
+          services:
+            zookeeper:
+              image: confluentinc/cp-zookeeper:7.2.2
+              ports:
+                - "2181:2181"
+              environment:
+                ZOOKEEPER_CLIENT_PORT: 2181
+          
+            kafka:
+              image: confluentinc/cp-kafka:7.2.2
+              depends_on:
+                zookeeper:
+                  condition: service_started
+              ports:
+                - "29092:29092"
+                - "9092:9092"
+              environment:
+                KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+                KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+                KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+                KAFKA_BROKER_ID: 1
+                KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          EOF
+          
+          docker compose -f docker-compose-kafka.yml up -d
+          
+          # Ждем готовности Kafka
+          echo "Waiting for Kafka..."
+          timeout 60 bash -c 'until docker run --network host --rm confluentinc/cp-kafka:7.2.2 kafka-topics --bootstrap-server localhost:29092 --list; do sleep 2; done'
+
+      - name: Check Kafka connection
+        run: |
+          docker run --network host --rm confluentinc/cp-kafka:7.2.2 \
+            kafka-topics --bootstrap-server localhost:29092 --list
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install requirements
+        run: |
+          pip install -r requirements.txt
+          pip install psycopg2-binary redis kafka-python
+
+      - name: Run tests
+        env:
+          # REDIS
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+
+          # Kafka
+          KAFKA_BOOTSTRAP_SERVERS: ${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
+          KAFKA_TOPIC_FOR_AI_HANDLER: ${{ secrets.KAFKA_TOPIC_FOR_AI_HANDLER }}
+          KAFKA_TOPIC_FOR_NOTIFICATIONS: ${{ secrets.KAFKA_TOPIC_FOR_NOTIFICATIONS }}
+
+          # Режим работы
+          MODE: TEST
+        run: pytest
+
+  build:
+    name: Build with Docker Compose
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env file for build
+        run: |
+          # создание .env
+          cat <<EOF > .env
+          
+          # REDIS
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          
+          # Kafka
+          KAFKA_BOOTSTRAP_SERVERS: ${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}
+          KAFKA_TOPIC_FOR_AI_HANDLER: ${{ secrets.KAFKA_TOPIC_FOR_AI_HANDLER }}
+          KAFKA_TOPIC_FOR_NOTIFICATIONS: ${{ secrets.KAFKA_TOPIC_FOR_NOTIFICATIONS }}
+
+          # Режим работы
+          MODE: DEV
+
+      - name: Docker compose build
+        run: |
+          docker compose -f docker-compose.yml build
+          docker compose -f docker-compose.yml up -d --wait
