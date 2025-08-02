@@ -16,11 +16,10 @@ KAFKA_TOPIC_FOR_NOTIFICATIONS=os.getenv('KAFKA_TOPIC_FOR_NOTIFICATIONS')
 
 # этот импорт необходимо указывать именно тут для корректного импорта .tests.env
 import pytest_asyncio
-from confluent_kafka.cimpl import NewTopic, TopicPartition
-from confluent_kafka import Consumer
+from confluent_kafka.cimpl import NewTopic
 
 from srt.config import logger
-from srt.dependencies.kafka_dependencies import admin_client, ConsumerKafkaNotifications, consumer_notifications
+from srt.dependencies.kafka_dependencies import admin_client
 
 RESPONSE = {
     "callback_url": "https://test_url",
@@ -70,11 +69,19 @@ producer = ProducerKafka()
 
 @pytest_asyncio.fixture(scope='function', autouse=True)
 async def start_kafka_consumer():
-    """Фикстура для запуска потребителя Kafka в отдельном потоке"""
-    consumer_thread = threading.Thread(target=consumer_notifications.consumer_run)
-    consumer_thread.daemon = True  # демонизируем поток, чтобы он завершился при завершении основного потока
+    """Фикстура для запуска нового consumer Kafka для каждого теста"""
+
+    from srt.dependencies.kafka_dependencies import ConsumerKafkaNotifications, KAFKA_TOPIC_FOR_AI_HANDLER
+
+    consumer_instance = ConsumerKafkaNotifications(KAFKA_TOPIC_FOR_AI_HANDLER)
+    consumer_thread = threading.Thread(target=consumer_instance.consumer_run)
+    consumer_thread.daemon = True
     consumer_thread.start()
+    await asyncio.sleep(2)
     yield
+
+    # Остановить consumer после завершения теста (необязательно, но желательно)
+    await consumer_instance.set_running(False)
 
 @pytest_asyncio.fixture(scope='session', autouse=True)
 async def check_kafka_connection(_session_scoped_runner):
@@ -125,4 +132,3 @@ async def clearing_kafka():
     else:
         raise RuntimeError("Partition или leader не инициализирован после создания топика.")
 
-    consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_AI_HANDLER])

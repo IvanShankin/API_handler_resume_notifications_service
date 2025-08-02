@@ -25,7 +25,7 @@ async def test_kafka(data, clearing_kafka):
         value=data
     )
 
-    await asyncio.sleep(15) # даём время на обработку сервера (в 10 секунд выставлен таймаут отправки )
+    await asyncio.sleep(30) # даём время на обработку сервера (в 10 секунд выставлен таймаут отправки)
 
     redis_data = await redis.get(f'processed_messages:{data['response']['processing_id']}')
     assert redis_data

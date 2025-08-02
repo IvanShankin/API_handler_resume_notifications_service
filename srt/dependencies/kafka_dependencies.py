@@ -101,11 +101,9 @@ class ConsumerKafka:
         msg_count = 0
 
         while self.running:
-            print("читаем топик")
             msg = self.consumer.poll(timeout=1.0)
             if msg is None:
                 continue
-
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     sys.stderr.write('%% %s [%d] reached end at offset %d\n' %
@@ -115,7 +113,6 @@ class ConsumerKafka:
             else:
                 data = json.loads(msg.value().decode('utf-8'))
                 key = msg.key().decode('utf-8')
-
                 await self.worker_topic(data, key)
 
                 msg_count += 1
