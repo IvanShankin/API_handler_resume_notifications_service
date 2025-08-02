@@ -87,7 +87,7 @@ async def check_kafka_connection(_session_scoped_runner):
 @pytest_asyncio.fixture(scope='function')
 async def clearing_kafka():
     """Очищает топик у kafka с которым работаем, путём его пересоздания"""
-    max_retries = 10
+    max_retries = 15
     consumer.unsubscribe()
 
     # Сбрасываем позицию consumer перед очисткой
@@ -136,4 +136,4 @@ async def clearing_kafka():
         raise RuntimeError("Partition или leader не инициализирован после создания топика.")
 
     # подписка на новый топик
-    await consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_NOTIFICATIONS])
+    consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_NOTIFICATIONS])

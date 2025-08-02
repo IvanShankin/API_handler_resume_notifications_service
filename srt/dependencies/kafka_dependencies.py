@@ -101,6 +101,7 @@ class ConsumerKafka:
         msg_count = 0
 
         while self.running:
+            print("читаем топик")
             msg = self.consumer.poll(timeout=1.0)
             if msg is None:
                 continue
@@ -136,7 +137,6 @@ class ConsumerKafkaNotifications(ConsumerKafka):
         super().__init__(topic)
 
     async def worker_topic(self, data: dict, key: str):
-
         if key == KEY_NEW_NOTIFICATIONS: # при поступлении нового запроса
             async with RedisWrapper() as redis:
                 try:
