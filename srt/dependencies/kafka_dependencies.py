@@ -94,6 +94,9 @@ class ConsumerKafka:
     async def worker_topic(self, data:dict, key: str):
         pass
 
+    async def error_handler(self, e):
+        logger.error(f'Произошла ошибка при обработки сообщения c kafka: {str(e)}')
+
     async def _run_consumer(self):
         self.consumer.subscribe([self.topic])
         msg_count = 0
@@ -113,7 +116,10 @@ class ConsumerKafka:
                 data = json.loads(msg.value().decode('utf-8'))
                 key = msg.key().decode('utf-8')
 
-                await self.worker_topic(data, key)
+                try:
+                    await self.worker_topic(data, key)
+                except Exception as e:
+                    await self.error_handler(e)
 
                 msg_count += 1
                 if msg_count % MIN_COMMIT_COUNT_KAFKA == 0:
@@ -136,16 +142,19 @@ class ConsumerKafkaNotifications(ConsumerKafka):
     async def worker_topic(self, data: dict, key: str):
         if key == KEY_NEW_NOTIFICATIONS: # при поступлении нового запроса
             async with RedisWrapper() as redis:
-                redis_result = await redis.get(f'processed_messages:{data['processing_id']}')
+                try:
+                    redis_result = await redis.get(f'processed_messages:{data['response']['processing_id']}')
+                except Exception as e:
+                    logger.error(f'Redis error: {e}')
+
                 if redis_result is not None:
-                    logger.info(f"Сообщение от kafka на обработку с processing_id = {data['processing_id']} будет пропущено,"
+                    logger.info(f"Сообщение от kafka на обработку с processing_id = {data['response']['processing_id']} будет пропущено,"
                                 f"т.к. Было ранее обработано")
                     # в этом случае ничего возвращать не надо, ибо уже обработали этот запрос
                     return
 
                 callback_url = data['response']['callback_url']
                 del data['response']['callback_url']
-
                 if data['success'] is True: # если удачно обработали
                     await sending_code_200(callback_url, data)
                 else:
@@ -164,16 +173,13 @@ class ConsumerKafkaNotifications(ConsumerKafka):
                         error_details['details']["reason"] = 'Too many request'
                         error_type = 'Too many request'
 
-
                     await sending_error_notification(
-                        callback_url=data["response"]["callback_url"],
+                        callback_url=callback_url,
                         error_type=error_type,
                         error_details=error_details
                     )
-
-
                 # сохраняем в redis (значение может быть любое)
-                await redis.setex(f'processed_messages:{data['processing_id']}', STORAGE_TIME_PROCESSED_MESSAGES, '_')
+                await redis.setex(f'processed_messages:{data['response']['processing_id']}', STORAGE_TIME_PROCESSED_MESSAGES, '_')
 
 
 
