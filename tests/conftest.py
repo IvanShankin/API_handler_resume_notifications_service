@@ -136,4 +136,4 @@ async def clearing_kafka():
         raise RuntimeError("Partition или leader не инициализирован после создания топика.")
 
     # подписка на новый топик
-    consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_NOTIFICATIONS])
+    await consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_NOTIFICATIONS])
