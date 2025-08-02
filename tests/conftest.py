@@ -20,7 +20,7 @@ from confluent_kafka.cimpl import NewTopic, TopicPartition
 from confluent_kafka import Consumer
 
 from srt.config import logger
-from srt.dependencies.kafka_dependencies import admin_client, consumer_notifications
+from srt.dependencies.kafka_dependencies import admin_client, consumer_notifications, ConsumerKafkaNotifications
 
 RESPONSE = {
     "callback_url": "http://test_url/",

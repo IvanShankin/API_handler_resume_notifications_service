@@ -115,10 +115,7 @@ class ConsumerKafka:
                 data = json.loads(msg.value().decode('utf-8'))
                 key = msg.key().decode('utf-8')
 
-                try:
-                    await self.worker_topic(data, key)
-                except Exception as e:
-                    await self.error_handler(e)
+                await self.worker_topic(data, key)
 
                 msg_count += 1
                 if msg_count % MIN_COMMIT_COUNT_KAFKA == 0:
@@ -139,6 +136,7 @@ class ConsumerKafkaNotifications(ConsumerKafka):
         super().__init__(topic)
 
     async def worker_topic(self, data: dict, key: str):
+
         if key == KEY_NEW_NOTIFICATIONS: # при поступлении нового запроса
             async with RedisWrapper() as redis:
                 try:
@@ -155,7 +153,10 @@ class ConsumerKafkaNotifications(ConsumerKafka):
                 callback_url = data['response']['callback_url']
                 del data['response']['callback_url']
                 if data['success'] is True: # если удачно обработали
-                    await sending_code_200(callback_url, data)
+                    try:
+                        await sending_code_200(callback_url, data)
+                    except Exception as e:
+                        logger.error(f"Произошла ошибка при вызове метода sending_code_200: {str(e)}")
                 else:
                     error_type = 'processing_error'
                     error_details = {

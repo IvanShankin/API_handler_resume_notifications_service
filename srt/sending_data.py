@@ -1,7 +1,5 @@
-from datetime import datetime, UTC
-
 import httpx
-import json
+from datetime import datetime, UTC
 from srt.config import logger
 
 async def sending_code_200(callback_url:str, data: dict)->bool:
@@ -10,10 +8,11 @@ async def sending_code_200(callback_url:str, data: dict)->bool:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(
             callback_url,
-            json=json.dumps(data).encode('utf-8'),
-            timeout=20
+            json=data,
             )
+            print("отослали")
             response.raise_for_status()
+            print("после проверки")
         logger.info(f"Успешно отослали сообщение по url: {callback_url}")
         return True
     except Exception as e:
@@ -39,7 +38,6 @@ async def sending_error_notification(callback_url:str,  error_type: str, error_d
     }
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            print("\nдо того как отправили сообщение\n")
             response = await client.post(
                 callback_url,
                 json=error_payload,
