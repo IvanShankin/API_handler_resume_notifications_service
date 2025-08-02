@@ -13,7 +13,6 @@ from srt.sending_data import sending_code_200, sending_error_notification
 load_dotenv()
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS')
 KAFKA_TOPIC_FOR_AI_HANDLER = os.getenv('KAFKA_TOPIC_FOR_AI_HANDLER')
-KAFKA_TOPIC_FOR_UPLOADING_DATA = os.getenv('KAFKA_TOPIC_FOR_UPLOADING_DATA')
 KAFKA_TOPIC_FOR_NOTIFICATIONS = os.getenv('KAFKA_TOPIC_FOR_NOTIFICATIONS')
 
 admin_client = AdminClient({'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS})\
