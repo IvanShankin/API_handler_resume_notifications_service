@@ -20,10 +20,10 @@ from confluent_kafka.cimpl import NewTopic, TopicPartition
 from confluent_kafka import Consumer
 
 from srt.config import logger
-from srt.dependencies.kafka_dependencies import admin_client, ConsumerKafkaNotifications
+from srt.dependencies.kafka_dependencies import admin_client, ConsumerKafkaNotifications, consumer_notifications
 
 RESPONSE = {
-    "callback_url": "http://test_url/",
+    "callback_url": "https://test_url",
     'processing_id': 1,
     'user_id': 2,
     'resume_id': 3,
@@ -67,12 +67,10 @@ conf = {
 }
 
 producer = ProducerKafka()
-consumer = Consumer(conf)
 
-@pytest_asyncio.fixture(scope='session', autouse=True)
-async def re_creation_kafka_consumer():
-    """Фикстура для запуска consumer Kafka в отдельном потоке"""
-    consumer_notifications = ConsumerKafkaNotifications(KAFKA_TOPIC_FOR_AI_HANDLER)
+@pytest_asyncio.fixture(scope='function', autouse=True)
+async def start_kafka_consumer():
+    """Фикстура для запуска потребителя Kafka в отдельном потоке"""
     consumer_thread = threading.Thread(target=consumer_notifications.consumer_run)
     consumer_thread.daemon = True  # демонизируем поток, чтобы он завершился при завершении основного потока
     consumer_thread.start()
@@ -88,16 +86,7 @@ async def check_kafka_connection(_session_scoped_runner):
 @pytest_asyncio.fixture(scope='function')
 async def clearing_kafka():
     """Очищает топик у kafka с которым работаем, путём его пересоздания"""
-    max_retries = 10
-    consumer.unsubscribe()
-
-    # Сбрасываем позицию consumer перед очисткой
-    for topic in TOPIC_LIST:
-        try:
-            consumer.assign([TopicPartition(topic, 0, 0)])
-            consumer.seek(TopicPartition(topic, 0, 0))
-        except Exception as e:
-            logger.warning(f"Failed to reset consumer for topic {topic}: {e}")
+    max_retries = 15
 
     for topic in TOPIC_LIST:
         admin_client.delete_topics([topic])
@@ -135,3 +124,5 @@ async def clearing_kafka():
         time.sleep(1)
     else:
         raise RuntimeError("Partition или leader не инициализирован после создания топика.")
+
+    consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_AI_HANDLER])
