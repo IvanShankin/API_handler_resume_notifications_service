@@ -101,7 +101,6 @@ class ConsumerKafka:
         msg_count = 0
 
         while self.running:
-            print("читаем топик")
             msg = self.consumer.poll(timeout=1.0)
             if msg is None:
                 continue
@@ -180,7 +179,6 @@ class ConsumerKafkaNotifications(ConsumerKafka):
                     )
                 # сохраняем в redis (значение может быть любое)
                 await redis.setex(f'processed_messages:{data['response']['processing_id']}', STORAGE_TIME_PROCESSED_MESSAGES, '_')
-
 
 
 consumer_notifications = ConsumerKafkaNotifications(KAFKA_TOPIC_FOR_AI_HANDLER)

@@ -20,7 +20,7 @@ from confluent_kafka.cimpl import NewTopic, TopicPartition
 from confluent_kafka import Consumer
 
 from srt.config import logger
-from srt.dependencies.kafka_dependencies import admin_client, consumer_notifications, ConsumerKafkaNotifications
+from srt.dependencies.kafka_dependencies import admin_client, ConsumerKafkaNotifications
 
 RESPONSE = {
     "callback_url": "http://test_url/",
@@ -70,8 +70,9 @@ producer = ProducerKafka()
 consumer = Consumer(conf)
 
 @pytest_asyncio.fixture(scope='session', autouse=True)
-async def start_kafka_consumer():
-    """Фикстура для запуска потребителя Kafka в отдельном потоке"""
+async def re_creation_kafka_consumer():
+    """Фикстура для запуска consumer Kafka в отдельном потоке"""
+    consumer_notifications = ConsumerKafkaNotifications(KAFKA_TOPIC_FOR_AI_HANDLER)
     consumer_thread = threading.Thread(target=consumer_notifications.consumer_run)
     consumer_thread.daemon = True  # демонизируем поток, чтобы он завершился при завершении основного потока
     consumer_thread.start()
@@ -87,7 +88,7 @@ async def check_kafka_connection(_session_scoped_runner):
 @pytest_asyncio.fixture(scope='function')
 async def clearing_kafka():
     """Очищает топик у kafka с которым работаем, путём его пересоздания"""
-    max_retries = 15
+    max_retries = 10
     consumer.unsubscribe()
 
     # Сбрасываем позицию consumer перед очисткой
@@ -134,6 +135,3 @@ async def clearing_kafka():
         time.sleep(1)
     else:
         raise RuntimeError("Partition или leader не инициализирован после создания топика.")
-
-    # подписка на новый топик
-    consumer_notifications.subscribe_topics([KAFKA_TOPIC_FOR_NOTIFICATIONS])
