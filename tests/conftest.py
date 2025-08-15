@@ -20,6 +20,7 @@ from confluent_kafka.cimpl import NewTopic
 
 from srt.config import logger
 from srt.dependencies.kafka_dependencies import admin_client
+from srt.dependencies.kafka_dependencies import ConsumerKafkaNotifications
 
 RESPONSE = {
     "callback_url": "https://test_url",
@@ -70,9 +71,6 @@ producer = ProducerKafka()
 @pytest_asyncio.fixture(scope='function', autouse=True)
 async def start_kafka_consumer():
     """Фикстура для запуска нового consumer Kafka для каждого теста"""
-
-    from srt.dependencies.kafka_dependencies import ConsumerKafkaNotifications, KAFKA_TOPIC_FOR_AI_HANDLER
-
     consumer_instance = ConsumerKafkaNotifications(KAFKA_TOPIC_FOR_AI_HANDLER)
     consumer_thread = threading.Thread(target=consumer_instance.consumer_run)
     consumer_thread.daemon = True
