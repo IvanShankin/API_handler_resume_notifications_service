@@ -10,9 +10,7 @@ async def sending_code_200(callback_url:str, data: dict)->bool:
             callback_url,
             json=data,
             )
-            print("отослали")
             response.raise_for_status()
-            print("после проверки")
         logger.info(f"Успешно отослали сообщение по url: {callback_url}")
         return True
     except Exception as e:
