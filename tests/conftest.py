@@ -18,9 +18,9 @@ KAFKA_TOPIC_FOR_NOTIFICATIONS=os.getenv('KAFKA_TOPIC_FOR_NOTIFICATIONS')
 import pytest_asyncio
 from confluent_kafka.cimpl import NewTopic
 
-from srt.config import logger
-from srt.dependencies.kafka_dependencies import admin_client
-from srt.dependencies.kafka_dependencies import ConsumerKafkaNotifications
+from src.config import logger
+from src.dependencies.kafka_dependencies import admin_client
+from src.dependencies.kafka_dependencies import ConsumerKafkaNotifications
 
 RESPONSE = {
     "callback_url": "https://test_url",

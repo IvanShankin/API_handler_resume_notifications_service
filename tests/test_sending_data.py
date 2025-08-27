@@ -1,9 +1,9 @@
 import asyncio
 import pytest
 
-from srt.config import KEY_NEW_NOTIFICATIONS
+from src.config import KEY_NEW_NOTIFICATIONS
 from tests.conftest import producer, RESPONSE
-from srt.dependencies.redis_dependencies import RedisWrapper
+from src.dependencies.redis_dependencies import RedisWrapper
 from tests.conftest import KAFKA_TOPIC_FOR_AI_HANDLER
 
 @pytest.mark.asyncio

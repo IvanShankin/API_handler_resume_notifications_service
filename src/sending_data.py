@@ -1,6 +1,6 @@
 import httpx
 from datetime import datetime, UTC
-from srt.config import logger
+from src.config import logger
 
 async def sending_code_200(callback_url:str, data: dict)->bool:
     """Отправит данные на указанный callback_url. Вернёт успех операции"""

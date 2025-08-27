@@ -6,9 +6,9 @@ from confluent_kafka.admin import AdminClient, NewTopic
 from confluent_kafka import Consumer, KafkaException, KafkaError
 import sys
 
-from srt.config import logger, MIN_COMMIT_COUNT_KAFKA, KEY_NEW_NOTIFICATIONS,STORAGE_TIME_PROCESSED_MESSAGES
-from srt.dependencies.redis_dependencies import RedisWrapper
-from srt.sending_data import sending_code_200, sending_error_notification
+from src.config import logger, MIN_COMMIT_COUNT_KAFKA, KEY_NEW_NOTIFICATIONS,STORAGE_TIME_PROCESSED_MESSAGES
+from src.dependencies.redis_dependencies import RedisWrapper
+from src.sending_data import sending_code_200, sending_error_notification
 
 load_dotenv()
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS')
